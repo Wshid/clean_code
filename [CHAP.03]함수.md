@@ -84,7 +84,7 @@ public Money calculatePay(Employee e) throws InvalidEmployeeType {
       ...
       ```
 
-#### List.3.5. Employee and Factory
+#### LIST.3.5. Employee and Factory
 - 위 코드의 문제를 해결한 코드
 - `switch`문을 **추상 팩터리**(Abstract Factory)에 숨김
 - 팩토리는 `switch`구문을 사용해, 적절한 `Employee` 파생 클래스 인스턴스 생성
@@ -122,3 +122,151 @@ public Money calculatePay(Employee e) throws InvalidEmployeeType {
   - **다형적 객체**를 생성하는 코드 안에서만
 - 이렇게 **상속 관계**로 숨긴 후에는
   - 절대로 다른 코드에 노출하지 않음
+
+### 서술적인 이름을 사용하라
+- 코드를 읽으면서 짐작했던 기능을 각 루틴이 그대로 수행한다면 **깨끗한 코드**
+- 이름이 길어도 괜찮음
+- **길고 서술적인 이름 > 짧고 어려운 이름**
+- **길고 서술적인 이름 > 주석**
+- 여러 단어가 **쉽게 읽히는** 명명법
+  - 이후, 여러 단어를 이용해 **함수 기능**을 잘 표현하는 이름
+- 이름을 붙일때는 **일관성**이 있어야 함
+- **모듈**내에서 **함수명**은 `같은 문구, 명사, 동사` 사용
+  - `includeSetupAndTeardownPages`
+  - `includeSetupPages`
+  - `includeSuiteSetupPage`
+- 위 내용들을 보고 `includeTeardownPages` 등이 있는지 질문이 생겼을때
+  - 있다면, `짐작하는 대로`라면 좋음
+
+### 함수 인수
+- 이상적인 **인수 개수**는 `0개`
+  - 이후 `1개, 2개`순
+- `3개`는 가능한 피하는 편이 좋으며
+- `4개`이상은 **특별한 이유**가 필요
+  - 특별한 이유가 있더라도, 사용하면 안됨
+- 인스턴스 변수로 선언하는 대신, 함수 인수로 넘겼을 때
+  - 코드를 읽는 사람이 그 `인수를 해석`해야 함
+  - 함수 이름과 인수 사이에 `추상화 수준`이 다를 수 있음
+  - 코드를 읽는 사람이, `현 시점에 별로 중요하지 않은 세부사항`을 알아야 함
+- **테스트 관점**에서 인수가 어려움
+  - 인수의 수만큼 검증이 필요
+- 어려움: **출력 인수 > 입력 인수**
+  - 대개 함수에서 **인수**로 결과를 받으리라 기대하지 않음
+- **최선은 인수가 없는 경우**
+  - 차선은 **인수가 1개**인 경우
+
+#### 많이 쓰는 단항 형식
+- 함수에 인수를 `1개`를 넘기는 경우
+
+##### 인수에 질문을 던지는 경우
+- `boolean fileExists("MyFile")`
+
+##### 인수로 뭔가를 **변환**하여 결과를 반환하는 경우
+- `InputStream fileOpen("MyFile")`
+  - `String`의 파일 이름을 `InputStream`으로 변환
+- 함수 이름을 지을 때, **두 경우를 명확히 구분**
+  - `명령/조회` 분리
+
+##### 이벤트 함수
+- `입력 인수`만 주로 있으며, `출력 인수`는 없음
+- 프로그램은 함수 호출을 **이벤트**로 해석해,
+  - **입력 인수**로 **시스템 상태**를 변경
+- 예시
+  ```java
+  passwordAttemptFailedNtimes(int attempts)
+  ```
+- 이벤트 함수는 조심히 사용할 것
+  - 이벤트라는 사실이 **코드에 명확하게 드러나야 함**
+- **이름**과 **문맥**을 주의해서 사용하기
+  
+##### 이외 케이스는 피하기
+- `void includeSetupPageInto(StringBuffer pageText)`와 같은 형식은 피해야 함
+  - **변환 함수**에서 **출력 인수**를 사용하면 혼란스러움
+  - **입력 인수**를 변환하는 함수라면, **변환 결과**는 **변환 값**으로 리턴
+- `StringBuffer transform(StringBuffer in)`이 더 좋은 형식
+  - 입력인수를 그대로 돌려준다 하더라도, **변환 함수 형식**을 따르는 편이 좋음
+  - 최소한 **변환 형태**는 유지하기 때문
+
+#### 플래그 인수
+- 함수로 `boolean`값을 넘기는 관례는 X
+  - **함수가 여러가지를 처리한다고 공표하기 때문**
+- 예시
+  ```java
+  // Wrong!
+  render(boolean isSuite)
+
+  // Good!
+  renderForSuite()
+  renderForSingleTest()
+  ```
+  - 위와 같이 함수를 쪼개야 함
+
+#### 이항 함수
+- 인수가 `2개`인 함수는 `1개`인 함수보다 이해하기 어려움
+  ```java
+  // 아래 함수보다 이해하기 쉬움
+  writeField(name)
+  writeField(outputStream, name) // 첫 인자를 무시해야 하는데 시간이 걸림
+  ```
+  - 또한 `무시한다는 사실`에 오류가 숨어드는 경우가 많음
+- 이항 함수가 적절한 경우?
+  - `Point p = new Point(0, 0)`: 좌표계
+    - 비교적 자연적인 값
+- 단, `outputStream, name`은 한 값을 표현하지도, 자연적이지도 않음
+- `assertEquals`함수에도 문제가 존재
+  ```java
+  // expected에 actual을 집어넣는 등의 오류..
+  assertEquals(expected, actual)
+  ```
+  - `expected` 다음에 `actual`이 온다는 순서를 **인위적으로 기억해야함**
+- 이항 함수는 되도록 **단항 함수**로 변경하기(3)
+  - `writeField` 메서드를 `outputStream` 클래스 구성원으로 변경
+    - `outputStream.writeField(name)`
+  - `outputStream`을 현재 클래스 구성원 변수로 만들어 인수로 넘기지 X
+  - `FileWriter`라는 새 클래스를 구성하여, 구성자에서 `outputStream`을 받고, `write`를 구현
+
+#### 삼항 함수
+- 신중히 고려해야 함
+- 예외
+  ```java
+  // 부동 소수점 비교가 상대적이라는 의미
+  assertEquals(1.0, amount, .001)
+  ```
+
+#### 인수 객체
+- 인수가 `2~3`개 필요하다면, 일부를 **독자적인 클래스 변수**로 선언할 가능성을 짚어보기
+  ```java
+  Circle makeCircle(double x, double y, double radius);
+  Circle makeCircle(Point center, double radius);
+  ```
+  - 결국 개념을 표현하게 되는 구조
+
+#### 인수 목록
+- 인수 개수가 **가변적**인 함수도 때로는 필요
+  - `String.format`
+- 사실상 이항함수
+  ```java
+  public String format(String format, Object... args)
+  ```
+- 가변함수를 취하는 모든 함수에, 원리가 적용됨
+  - 가변 인수를 취하는 함수는 `단항, 이항, 삼항`함수로 취급할 수 있음
+  - 단, 이를 넘어서는 인수를 사용할 경우엔 문제 발생
+    ```java
+    void monad(Integer... args)
+    void dyad(String name, Integer... args)
+    void triad(String name, int count, Integer... args)
+    ```
+
+#### 동사와 키워드
+- **함수의 의도**나 **인수의 순서/의도**를 표현하려면
+  - 좋은 함수 이름이 있어야 함
+- `함수:인수 = 동사:명사`
+  ```java
+  // V(N)
+  write(name)
+  // Better good
+  writeField(name)
+  ```
+- 함수 이름에 **키워드**를 추가하기
+  - **함수 이름**에 **인수 이름**을 넣기
+  - `assertEquals`보다 `assertExpectedEqualsActual(expected, actual)`가 좋음
