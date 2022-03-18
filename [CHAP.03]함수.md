@@ -270,3 +270,246 @@ public Money calculatePay(Employee e) throws InvalidEmployeeType {
 - 함수 이름에 **키워드**를 추가하기
   - **함수 이름**에 **인수 이름**을 넣기
   - `assertEquals`보다 `assertExpectedEqualsActual(expected, actual)`가 좋음
+
+### 부수 효과를 일으키지 마라
+- 예상치 못한 클래스 변수의 변경등을 의미
+- 함수로 넘어온 인수나, 시스템 전역변수 수정 등
+  많은 케이스의 경우 **시간적인 결합**(teporal coupring)이나,
+    **순서 종속성**(order dependecy)를 가지게 됨
+- **시간적인 결합**을 가지게 되면
+  - 해당 메서드는 **혼란**을 일으키게 됨
+  - 특정 상황에서만 호출 가능하기 때문
+- 시간적인 결합이 필요하다면 **함수명에 명시 필요**
+
+#### 출력 인수
+- 일반적으로 `인수 = 함수 입력`
+  - 위와 같이 작업해야함
+- 예시
+  ```java
+  appendFooter(s);
+  
+  // 위 메서드보다 직관적
+  report.appendFooter(s);
+  ```
+- 일반적으로 **출력 인수**는 피해야 함
+- 함수에서 **상태 변경**이 필요하다면
+  - 함수가 속한 **객체 상태 변경 방식**을 택할 것
+
+### 명령과 조회를 분리하라
+- 함수는 아래 둘중에 하나의 로직만 수행 필요
+  - 무언가를 수행하거나
+  - 무언가에 답해야 함
+- **둘다 하면 안됨**
+- 혼란을 초래하는 예시
+  ```java
+  // attribute 속성을 찾아, value로 설정
+  // 성공시 true, 아니면 false 반환
+  public boolean set(String attribute, String value);
+
+  // 모호한 코드, `set`이 동사인지, 형용사인지 애매함
+  // username이 unclebob라면.. 정도로 해석될 수 있음
+  if (set("username", "unclebob")) ...
+  ```
+- 예시 해결 방법: `명령/호출`을 분리하기
+  ```java
+  if (attributeExists("username")) {
+    setAttribute("username", "unclebob");
+    ...
+  }
+  ```
+
+### 오류 코드보아 예외를 사용하기
+- **명령 함수**에서 **오류 코드 반환 방식**은
+  - **명령/조회 규칙**을 위반함
+- 예시
+  ```java
+  if (deletePage(page) == E_OK)
+  ```
+  - 중첩되는 처리 유발
+  - 오류 코드 반환시, 오류 코드를 바로 처리해야한다는 문제에 직면
+- 위 방식을 **예외**를 처리하여 사용하면 깔끔해짐
+
+#### Try/Catch 블록 뽑아내기
+- `Try/Catch`는 본래 추함
+  - 코드 구조에 혼란을 야기하며,
+  - 정상 동작과 오류 처리 동작을 섞게됨
+- 그에 따라, `Try/Catch`를 별도 분리하는게 좋음
+  ```java
+  public void delete(Page page) {
+    try {
+      deletePageAndAllReferences(page);
+    } catch (Exception e) {
+      logError(e);
+    }
+  }
+
+  private void deletePageAndAllReferences(Page page) throws Exception {
+    deletePage(page);
+    registry.deleteReference(page.name);
+    configKeys.deleteKey(page.name.makeKey());
+  }
+
+  private void logError(Exception e) {
+    logger.log(e.getMessage());
+  }
+  ```
+- **정상 처리**동작과 **오류 처리**동작을 구문
+
+#### 오류 처리도 한 가지 작업이다
+- 함수는 `한 가지` 작업만 해야 함
+- 오류 처리 역시, `한 가지` 작업을 의미
+- **오류를 처리하는 함수**는 **오류만 처리 해야함**
+- 함수에 `try`가 있다면
+  - `catch/finally` 구문으로 끝나야 함
+
+#### Error.java 의존성 자석
+- 오류 코드 반환
+  - 어디선가 **오류 코드**를 정의한다는 의미
+- 이는 **의존성 자석**(magnet)을 의미
+- 다른 클래스에서 `Error` 클래스를 사용한다면,
+  - `Error Enum`변경시, 클래스 전부를 **재컴파일**및 **재배치**
+- 오류 코드 대신 **예외**를 사용하면
+  - `Exception` 클래스에서 **파생**된 내용을 사용하게 됨
+  - 그에 따라 **재컴파일/재배치**없이도 새 예외 클래스 추가 가능
+
+### 반복하지 마라
+- 중복은 문제
+- 많은 기법이나 규칙들이 **중복**을 없애거나 제거할 목적으로 나옴
+  - 관계형 데이터베이스에 **정규 형식**
+  - 객체 지향 프로그래밍: 코드를 **부모 클래스**로 몰아넣음
+  - 구조적 프로그래밍, AOP(Aspect Oriented Programming), COP(Component Oriented PRogramming) 역시 제거 전략
+
+### 구조적 프로그래밍
+- **모든 함수**와 **함수내 모든 블록**에
+  - **입구**(entry)와 **출구**(exit)는 하나만 존재해야함을 의미
+  - 함수는 `return`이 하나여야 함
+- loop안에서 `break/continue`를 사용하면 안되며,
+  - `goto`는 절대 X
+- 단, `함수다 작다`면, 별 이득은 없음
+  - `함수가 아주 클 때`만 상당한 이득
+- 함수를 작게 만든다면
+  - `return/break/continue`를 여러 차례 사용해도 좋음
+  - 오히려 때로는, **단일 입/출구 규칙**(single entry-exit rule)보다 의도를 잘 표현함
+  - `goto`는 피해야함
+
+### 함수를 어떻게 짜죠?
+- 소프트웨어를 짜는 행위는 **글짓기**와 유사
+- 처음에는 길고 복잡(들여쓰기 단계도 많고, 중복 다수 존재, 인수도 긴 상황)
+- 이후 **코드 다듬기, 함수 만들기, 이름 변경, 중복 제거**
+  - 메서드는 줄이고 순서 변경
+  - 전체 클래스 분할
+  - 계속 **단위 테스트**는 통과해야함
+
+### 결론
+- 함수 작성의 목표
+  - **시스템이라는 이야기를 풀어나가는데에 있음**
+  - 함수가 분명하고, 정확한 언어로 깔금하게 같이 맞아 떨어져야
+  - 이야기를 풀어가기가 쉬워짐
+
+#### LIST.3.7. SetupTeardownIncluder
+```java
+
+
+public class SetTeardownIncluder {
+  private PageData pageData;
+  private boolean isSuite;
+  private WikiPage testPage;
+  private StringBuffer newPageContent;
+  private PageCrawler pageCrawler;
+
+  public static String render(PageData pageData) throws Exception {
+    return rendder(pageData, false);
+  }
+
+  public static String render(PageDta pageData, boolean isSuite) throws Exception {
+    return new SetupTeatdownIncluder(pageData).render(isSuite);
+  }
+
+  private SetupTearDownIncluder(PageData pageData) {
+    this.pageData = pageData;
+    testPage = pagaData.getWikiPage();
+    pageCrawler = testPage.getPageCrawler();
+    newPageContent = new StringBuffer();
+  }
+
+  private String render(boolean isSuite) throws Exception {
+    this.isSuite = isSuite;
+    if (isTestPage())
+      includeSetupAndTeardownPages();
+    return pageData.getHtml();
+  }
+
+  private boolean isTestPage() throws Exception {
+    return pageData.hasAttribute("Test");
+  }
+
+  private void includeSetupAndTeardownPages() throws Exception {
+    includeSetupPages();
+    includePageContent();
+    includeTeardownPages();
+    updatePageContent();
+  }
+
+  private void includeSetupPages() throws Exception {
+    if (isSuite)
+      includeSuiteSetupPage();
+    includeSetupPage();
+  }
+
+  private void includeSuiteSetupPage() throws Exception {
+    include(SuiteResponder.SUITE_SETUP_NAME, "-setup");
+  }
+
+  private void includeSetupPage() throws Exception {
+    include("Setup", "-setup");
+  }
+
+  private void includePageContent() throws Exception {
+    newPageContent.append(pageData.getContent());
+  }
+
+  private void includeTeardownPages() throws Exception {
+    includeTeardownPage();
+    if (isSuite)
+      includeSuiteTeardownPage();
+  }
+
+  private void includeTeardownPage() throws Exception {
+    include("TearDown", "-teardown");
+  }
+
+  private void includeSuiteTeardownPage() throws Exception {
+    include(SuiteResponder.SUITE_TEARDOWN_NAME, "-teardown");
+  }
+
+  private void updatePageConent() throws Exception {
+    pageData.setContent(newPageContent.toString());
+  }
+
+  private void include(String pageName, String arg) throws Exception {
+    WikiPage inheritedPage = findInheritedPage(pageName);
+    if (inheritedPage != null) {
+      String pagePathName = getPathNameForPage(inheritedPage);
+      buildIncludeDirective(pagePathName, arg);
+    }
+  }
+
+  private WikiPage findInheritedPage(String pageName) throws Exception {
+    return PageCrawlerImpl.getInheritedPage(pageName, testPage);
+  }
+
+  private String getPathNameForPage(WikiPage page) throws Exception {
+    WikiPagePath pagePath = pageCrawler.getFullPath(page);
+    return PathParser.render(pagePath);
+  }
+
+  private void buildIncludeDirective(String pagePathName, String arg) {
+    newPageContent
+      .append("\n!innclude ")
+      .append(arg)
+      .append(" .")
+      .append(pagePathName)
+      .append("\n");
+  }
+}
+```
