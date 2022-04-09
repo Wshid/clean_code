@@ -89,3 +89,72 @@
     assertEquals(false, failFlag.get());
   }
   ```
+
+#### 의도를 명료하게 밝히는 주석
+- 때때로 모호한 인수나 반환값은 의미를 읽기 좋게 표현하면 이해가 쉬워짐
+- 인수나 반환값이 표준 라이브러리나 `변경하지 못한 코드`로 속한다면
+  - 의미를 명료하게 밝히는 주석이 유용
+- 물론 `그릇된 주석`을 달아놓을 위험은 높음
+- 이 주석을 달 때 더 나은 방법이 없는지 고민하고 정확히 달 것
+
+#### 결과를 경고하는 주석
+- 다른 프로그래머에서 결과를 경고할 목적으로 주석 사용
+```java
+// 여유 시간이 충분하지 않다면 실행하지 말 것
+public void _testWithReallyBigFile() {
+  writeLines...
+}
+```
+- 물론 요즘에는 `@Ignore`속성을 이용하여 test case를 끌 수 있음
+- 구체적인 설명은 `@Ignore`속성에 문자열로 넣어 줌
+- `junit4`가 나오기 전까지는
+  - 메서드 이름 앞에 `_`로 표기
+- 적절한 예제
+  ```java
+  public static SimpleDateFormat makeStandardHttpDateFormat() {
+    // SimpleDateFormat은 스레드에 안전하지 못함
+    // 따라서 각 인스턴스를 독립 생성 필요
+    SimpleDateFormat df = new SimpleDateFormat("...");
+    ...
+  }
+  ```
+  - 더 나은 해결책이 있을 수 있겠으나, 여기서는 주석이 합리적
+  - 프로그램 효율을 높이기 위해 `정척 초기화 함수`를 사용하려던 프로그래머가 **주석**으로 실수를 면함
+
+#### TODO 주석
+- 앞으로 할일
+  ```java
+  // TODO-MdM 현재 필요하지 않음
+  // 체크아웃 모델 도입시 함수 필요 없음
+  protected VersionInfo makeVersion() throws Exception {
+    return null;
+  }
+  ```
+- 당장 프로그래머가 구현하기 어려운 업무를 기술
+  - 더 이상 필요없는 기능 삭제
+  - 누군가에게 문제를 봐달라는 요청
+  - 더 좋은 이름 개선 부탁
+  - 발생할 이벤트에 맞춰 코드를 고치기
+- 단, 어떤 용도로 사용하던
+  - `나쁜 코드를 남겨놓는 핑계가 되어선 안됨`
+- IDE에서 `TODO`를 모아보는 기능을 제공하여, 주석을 잊을 염려는 없으나
+  - `TODO`로 도배된 코드는 좋지 않음
+- 주기적으로 `TODO` 주석을 점검해
+  - 없애도 괜찮은 주석은 없애라고 권함
+
+#### 중요성을 강조하는 주석
+- 중요하지 않다고 여겨질 내용에 대해 중요성을 강조하기 위함
+  ```java
+  String listItemContent = match.group(3).trim();
+  // trim은 매우 중요, trim은 문자열에서 시작 공백을 제거
+  // 문자열 시작 공백 존재시, 다른 문자열로 인식하기 때문
+  new ListItemWidget(this, listItemContent, this.level + 1);
+  return buildList(text.substring(match.end()));
+  ```
+
+#### 공개 API에서 JavaDocs
+- 공개 API를 구현한다면, `JavaDocs`를 작성할 것
+- 물론 어느 주석과 마찬가지로
+  - 독자를 오도하거나
+  - 잘못 위치하거나
+  - 그릇된 정보를 전달할 가능성이 존재
