@@ -110,3 +110,114 @@ public class ReporterConfig {
       ...
     }
     ```
+- **인스턴스 변수**: 클래스 맨 처음에 선언
+  - 변수간에 거리도 두지 않음 
+  - 잘 설계한 클래스에서는 대다수의 **클래스 메서드**가 **인스턴스 변수**를 사용하기 때문
+  - 아직 위치에 대한 논쟁은 존재
+    - `c++`: `scissors rule`에 따라, 모든 인스턴스 변수를 `클래스 마지막에 선언`
+    - `java`: 클래스 맨 처음에 선언
+  - 잘 알려진 위치에 **인스턴스 변수의 모음**이 중요
+    - 변수 선언을 어디서 찾을지가 중요
+- **종속 함수**
+  - `한 함수`가 `다른 함수`를 호출한다면, 세로로 가까이 위치
+  - 가능하다면 `호출하는 함수`를 `호출되는 함수`보다 먼저 배치
+  - c.f. 상수를 적절한 위치에 두는 예시
+    ```java
+    // defaultPageName을 따로 받음(함수 내에서 상수 정의 x)
+    // default value가 다른 상황에서 재사용성이 높아짐
+    private String getPageNameOrDefault(Request request, String defaultPageName) {
+      String pageName = request.getResource();
+      if (StringUtil.isBlank(pageName))
+        pageName = defaultPageName;
+      
+      return PageName;
+    }
+    ```
+- **개념적 유사성**
+  - 개념적인 친화도가 높은 코드들, 가까이 배치
+  - `친화도가 높다`
+    - 한 함수가 `다른 함수를 호출`해 생기는 종속성
+    - 변수와 `그 변수를 사용하는 함수`
+    - `비슷한 동작`을 수행하는 함수
+      ```java
+      // Junit 4.3.1
+      public class Assert {
+        static public void assertTure(String message, boolean condition) {
+          if (!condition)
+            fail(message);
+        }
+
+        static public void assertTure(boolean condition) {
+          assertTrue(null, condition);
+        } 
+        
+        static public void assertFalse(String message, boolean condition) {
+          assertTrue(message, !condition);
+        }
+
+        static public void assertFalse(boolean condition) {
+          assertFalse(null, condition)
+        }
+      }
+      ```
+      - 개념적인 친화도가 높음
+      - **명명법**이 동일, **기능** 유사
+      - 서로가 서로를 호출하는건 `부차적인 요인`
+      - **종속적인 관계 x**, but 가까이 배치
+
+#### 세로 순서
+- 일반적으로 `함수 호출 종속성`는 **아래 방향**으로 유지
+- **호출 하는 함수 -> 호출되는 함수**
+  - 소스 코드 모듈이 자연스럽게 `고차원 -> 저차원`으로 이동
+- `신문 기사`와 유사하게
+  - **중요한 개념**을 먼저 배치
+    - 이때 `세세한 내용`은 제외
+  - **세세한 사항**은 가장 마지막에 배치
+
+### 가로 형식 맞추기
+- 한 행의 가로 길이의 정도?
+  - 보통은 짧은 행이 바람직
+    - e.g. 프로젝트 7개 예시, `20 ~ 60`: 40%
+  - `100 ~ 120`도 좋음
+
+#### 가로 공백과 밀집도
+- **공백**을 활용하여 `밀접한 개념`과 `느슨한 개념`을 표현
+  ```java
+  private void measureLine(String line) {
+    lineCount++;
+    int lineSize = line.length();
+    totalChars += lineSize;
+    lineWidthHistogram.addLine(lineSize, lineCount);
+    recordWidestLine(lineSize);
+  }
+  ```
+  - **할당 연산자**를 강조하기 위해 **앙 옆 공백**
+    - **할당문**은 `left/right`가 확실히 나누어짐
+  - **함수 이름**과 이어지는 `괄호 사이`에는 **공백 x**
+    - **함수**와 **인수**는 밀접한 연관이 있기 때문
+  - **함수**를 호출하는 **괄호 안 인수**는 **공백**
+    - 쉼표를 강조해 **인수**가 별개임을 보여주기 위함
+- **연산자 우선순위**를 강조하기 위해서도 **공백**을 사용
+  ```java
+  public class Quadratic {
+    public static double root1(double a, double b, double c) {
+      double determinant = determinant(a, b, c);
+      return (-b + Math.sqrt(determinant)) / (2*a);
+    }
+
+    public static double root2(int a, int b, int c) {
+      double determinant = determinant(a, b, c);
+      return (-b + Math.sqrt(determinant)) / (2*a);
+    }
+    
+    private static double determinant(double a, double b, double c) {
+      return b*b - 4*a*c;
+    }
+  }
+  ```
+  - **승수**사이에는 `공백 x`
+    - **곱셈**은 우선순위가 가장 높음
+  - **항** 사이에는 `공백`
+    - **덧셈/뺄샘**은 우선순위가 곱셈보다 낮음
+- 하지만 대부분의 `IDE`에서
+  - **연산자 우선순위**를 고려하지 않음
