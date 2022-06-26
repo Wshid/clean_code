@@ -221,3 +221,140 @@ public class ReporterConfig {
     - **덧셈/뺄샘**은 우선순위가 곱셈보다 낮음
 - 하지만 대부분의 `IDE`에서
   - **연산자 우선순위**를 고려하지 않음
+
+#### 가로 정렬
+- 예시
+  ```java
+  public class FitNesseExpediter implements ReponseSender
+  {
+    private   Socket          socket;
+    private   InputStream     input;
+    protected FitNesseContext context;
+    ...
+  }
+  ```
+- 위와 같은 정렬은 **유용하지 x**
+  - 코드가 엉뚱한 부분을 강조, 진짜 의도가 가려짐
+  - 위 내용을 읽어보면 `변수 유형`은 무시되고, `변수명`만 읽히기 쉬움
+- 선언부와 초기화하는 부분만 별도로 구분
+  - 선언부 & 생성자
+
+#### 들여쓰기
+- 소스파일은 outline과 계층이 유사
+  - 파일 전체에 적용되는 범위
+  - 파일 내 **개별 클래스** 범위
+  - 클래스 내 각 **메서드** 범위
+  - 블록 내 블록에 재귀적으로 적용되는 정보
+- 계층에서 각 **수준**은 **이름을 선언하는 범위**이자 `선언문`, `실행문`을 해석하는 범위
+- 범위(`scope`)로 이루어진 계층을 표현하기 위해 **들여씀**
+- 들여쓰기 정도는 **계층**에서 **코드가 자리잡은 수준**에 비례
+- 클래스 정의처럼 **파일 수준**은 들여쓰지 X
+- 클래스 -> 메서드 -> 블록
+
+#### 가짜 범위
+- 빈 `while`문이나 `for`문
+- 가능한 작성하지 않음
+- 피자미 못할 경우
+  - **빈 블록**을 올바르게 들여쓰고 **괄호**로 감쌈
+
+### 팀 규칙
+- 한 가지 규칙에 합의 해야함
+- 모든 팀원은 이를 따라야 함
+  - 괄호의 위치
+  - 들여쓰기 글자 수
+  - 변수와 메서드명
+- 이후 정한 규칙대로 **IDE 설정**
+
+### 밥 아저씨의 형식 규칙
+#### CODE.5.6
+```java
+public class CodeAnalyzer implements JavaFileAnalysis {
+  private int lineCount;
+  private int maxLineWidth;
+  private int widestLineNumber;
+  private int totalChars;
+
+  public CodeAnalyzer() {
+    lineWidthHistogram = new LineWidthHistogram();
+  }
+
+  public static List<File> findJavaFiles(File parentDirectory) {
+    List<File> files = new ArrayList<File>();
+    findJavaFiles(parentDirectory, files);
+    return files;
+  }
+
+  private static void findJavaFiles(File parentDirectory, List<File> files) {
+    for (File file : parentDirectory.listFiles()) {
+      if (file.getName().endsWith(".java"))
+        files.add(file);
+      else if (file.isDirectory())
+        findJavaFiles(file, files);
+    }
+  }
+
+  public void analyzeFile(File javaFile) throws Exception {
+    BufferedReader br = new BufferedReader(new FileReader(javaFile));
+    String line;
+    while ((line = br.readLine()) != null)
+      neasureLine(line);
+  }
+
+  private void measureLine(String line) {
+    lineCount++;
+    int lineSize = line.elngth();
+    totalChars += lineSize;
+    lineWidthHistogram.addLine(lineSize, lineCount);
+    recordWidestLine(lineSize);
+  }
+
+  private void recordWidestLine(int lineSize) {
+    if (lineSize > maxLineWidth) {
+      maxLineWidth = lineSize;
+      widestLineNumber = lineCount;
+    }
+  }
+
+  public int getLineCount() {
+    return lineCount;
+  }
+
+  public int getMaxLineWidth() {
+    return maxLineWidth;
+  }
+  
+  public int getWidestLineNumber() {
+    return widestLineNumber;
+  }
+
+  public LineWidthHistogram getLineWidthHistogram() {
+    return lineWidthHistogram;
+  }
+
+  public double getMeanLineWidth() {
+    return (double)totalChars/lineCount;
+  }
+
+  public int getMedianLineWidth() {
+    Integer[] sortedWidths = getSortedWidths();
+    int cumulativeLineCount = 0;
+    for (int width : sortedWidths) {
+      cumulativeLineCount += lineCountForWidth(width);
+      if (cumulativeLineCount > lineCount/2)
+        return width;
+    }
+    throw new Error("Cannot get here");
+  }
+
+  private int lineCountForWidth(int width) {
+    return lineWidthHistogram.getLinesforWidth(width).size();
+  }
+
+  private Integer[] getSortedWidths() {
+    Set<Integer> widths = lineWidthHistogram.getWidths();
+    Integer[] sortedWidths = (widths.toArray(new Integer[0]));
+    Arrays.sort(sortedWidths);
+    return sortedWidths;
+  }
+}
+```
