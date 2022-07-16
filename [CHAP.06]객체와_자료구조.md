@@ -125,3 +125,138 @@ public class Rectangle implements Shape {
 - 분별있는 프로그래머는
   - **모든 것이 객체라는 생각이 미신**임을 앎
   - 때로는 `단순한 자료 구조`와 `절차적인 코드`가 가장 적합한 상황도 존재
+
+### 디미터 법칙
+- 잘 알려진 heuristic
+  - **모듈**은 자신이 조작하는 객체의 속사정을 **몰라야함**
+- **객체**는 자료를 숨기고 **함수를 공개**
+  - 객체는 조회 함수로 **내부 구조 공개 X**
+- 클래스 C의 메서드 `f`에 대해 다음과 같은 객체의 메서드만 호출해야 함
+  - 클래스 C
+  - f가 생성한 객체
+  - f 인수로 넘어온 객체
+  - C 인스턴스 변수에 저장된 객체
+- 하지만 위 객체에서 허용된 **메서드**가 반환하는 **객체의 메서드**는 호출 X
+- 디미터 법칙을 어기는 예시
+  ```java
+  // getOptions를 타고 getScratchDir을 타고.. 호출
+  final String outputDir = ctxt.getOptions().getScratchDir().getAbsolutePath();
+  ```
+
+#### 기차 충돌
+- 위 예시가 **기차 충돌**(train wreck)의 예씨
+  - 일반적으로 조잡, 피하는 편이 좋음
+- 위 예시의 올바른 방식: 코드 나누기
+  ```java
+  Options opts = ctxt.getOptions();
+  File scratchDir = opts.getScratchDir();
+  final String outputDir = scratchDir.getAbsolutePath();
+  ```
+  - 하지만 위 코드 역시, 함수가 많은 객체를 탐색할 줄 안다는 의미
+- 디미터 법칙을 위반하는가
+  - `ctxt, Options, ScratchDir`이 **객체**인지 **자료 구조**인지에 따라 다름
+    - 객체라면, 내부 내용을 숨겨야 하므로 **위반**
+    - 자료구조라면, 당연히 내부 구조를 노출하므로, 디미터 법칙이 적용되지 x
+- 위 예시에서는 `getter`를 사용하기에 모호
+- 다음과 같이 구현시 디미터 법칙 거론 필요 x
+  ```java
+  final String outputDir = ctxt.options.scratchDir.absolutePath;
+  ```
+- 자료구조/객체 단순 정의
+  - **자료 구조**는 무조건 함수 없이 **공개 변수**만 포함
+  - **객체**는 **비공개 변수**와 **공개 함수**를 포함
+- 하지만 단순한 자료 구조에도 `getter/setter`를 정의하라 요구하는
+  - framework와 표준(e.g. bean)이 존재
+
+#### 잡종 구조
+- 위와 같은 혼란으로 때때로 절반은 **객체**, 절반은 **자료구조**인 잡종 구조가 나옴
+- **잡종 구조**
+  - 중요한 기능을 수행하는 함수 존재
+  - 공개변수, 공개 조회/설정 함수 존재
+  - 공개 조회/설정 함수는 **비공개 변수 노출**
+- **잡종 구조의 단점**
+  - 새로운 함수 및 자료 구조 추가하기 어려움
+  - 여러가지 단점만 모은 구조
+
+#### 구조체 감추기
+- 만약 `ctxt, options, scratchDir`이 진짜 객체라면
+  - 기차 구조를 가지면 안됨
+  - 객체는 **내부구조**를 **숨겨야 하기 때문**
+- 1차 개선 및 한계
+  ```java
+  // ctxt 객체에 공개해야 하는 메서드가 너무 많아짐
+  ctxt.getAbsolutePathOfScratchDirectoryOption();
+
+  // 객체가 아니라 자료 구조를 반환한다고 가정했을 때 
+  ctxt.getScratchDirectoryOption().getAbsolutePath();
+  ```
+- `ctxt`가 **객체**라면 **뭔가를 하라고** 말해야지, 속을 드러내선 안됨
+- 동일 모듈의 내부 코드 확인
+  ```java
+  String outFile = outputDir + "/" + className.replace('.', '/') + ".class";
+  FileOutputStream fout = new FileOutputStream(outFile);
+  BufferedOutputStream bos = new BufferedOutputStream(fout);
+  ```
+  - 다소 불편한 구조
+    - `.`, `/`, `extension`, `File object`를 마구 섞은 상태
+  - 임시 디렉터리의 절대 경로를 얻으려는 이유
+    - 임시 파일을 생성하기 위함
+- 2차 개선: `ctxt`에게 임시 파일을 생성하도록 한다면?
+  ```java
+  BufferedOutputStream bos = ctxt.createScratchFileSystem(classFileName);
+  ```
+  - 객체에게 맡기기 적당한 임부로 보임
+  - `ctxt`가 내부구조를 드러내지 않으면서
+    - 모듈에서 해당 함수는 자신이 몰라야 하는 **여러 객체 탐색 필요 x**
+  - 디미터 법칙 위반 x
+
+### 자료 전달 객체
+- **자료 구조체**의 전형적인 형태는
+  - **공개 변수**만 존재
+  - **함수가 X**
+  - 클래스
+- 자료 구조체를 때때로 `DTO`(Data Transfer Object)라고 함
+- 보통 `db`와 통신하거나, `socket`으로 받은 메세지 구문 분석시 유용
+- `DTO`는 `db`에 저장된 **가공되지 않은 정보**를
+  - `application code`에서 사용할 객체로 변환하는 **일련의 단계**에서 가장 처음으로 사용하는 구조체
+- 또 다른 일반적인 형태: `bean` 구조
+
+#### LIST.6.7. address.java
+- `bean`은 `private` 변수를 `getter/setter`로 조작
+- 일부 `OO 순수주의자`나 만족시킬 뿐, 별다른 이익 제공 x
+```java
+public class Address {
+  private String street;
+  private String streetExtra;
+  ...
+
+  public String getStreet() {
+    return street;
+  }
+
+  public String streetExtra() {
+    return streetExtra;
+  }
+}
+```
+
+#### 활성 레코드
+- `DTO`의 특수한 형태
+- **공개 변수**가 있거나 **비공개 변수**에 `getter/setter`가 있는 **자료 구조**
+- 대게 `save/find`와 같은 **탐색 함수** 존재
+- `db table`이나 `다른 소스`에서 **자료를 직접 변환한 결과**
+- **활성 레코드**에 `비즈니스 규칙 메서드`를 추가해 이런 **자료 구조**를 **객체**로 취급하는 개발자가 많음
+  - 바람직하지 않음
+  - **잡종 구조**가 나오기 때문
+- **해결책**
+  - **활성 레코드**는 **자료 구조**로 간주
+  - **비즈니스 규칙**을 담으면서 **내부 자료**를 숨기는 객체는 따로 생성
+    - `내부 자료`는 `활성 레코드의 인스턴스`일 가능성이 높음
+
+### 결론
+- **객체**는 **동작 공개/자료 숨김**
+  - 기존 동작을 변경하지 않으면서, **객체 타입**을 추가하기 쉬움
+  - 기존 객체에 **새 동작 추가는 어려움**
+- **자료구조**는 별다른 동작 없이 **자료 노출**
+  - 기존 자료 구조에 **새 동작** 추가는 쉬움
+  - 기존 함수에 **새 자료 구조 추가**는 어려움
