@@ -86,3 +86,82 @@ public class DeviceController {
 - 흔히 **예외 클래스** 하나만 있어도 충분한 코드가 많음
   - **예외 클래스**에 포함된 정보로 **오류**를 구분해도 괜찮은 경우
 - `하나의 예외`는 잡아내고, 다른 예외는 무시해도 괜찮은 경우에는 `여러 예외 클래스`를 사용할 것
+
+### 정상 흐름을 정의하라
+- 때로는 **중단**이 적합하지 않을 때도 있음
+- 예시 코드
+  ```java
+  try {
+    MealExpenses expenses = expenseReportDAO.getMeals(employee.getID());
+    m_total += express.getTotal();
+  } catch(MealExpensesNotFound e) {
+    m_total += getMealPerDiem();
+  }
+  ```
+  - 예외가 논리를 따라가기 어렵게 만듦
+- 조금 더 간결한 코드
+  ```java
+  MealExpenses expenses = expenseReportDAO.getMeals(employee.getID());
+  m_total += expenses.getTotal();
+  ```
+  - `ExpenseReportDAO`를 고쳐 언제나 `MealExpense` 객체를 반환
+  ```java
+  poublic class PerDiemMealExpenses implements MealExpenses {
+    public int getTotal() {
+      // 기본값으로 일일 기본 식비 반환
+    }
+  }
+  ```
+- 위 코드 패턴을 **특수 사례 패턴**(Special Case Pattern)이라고 함
+  - **클래스**를 만들거나 **깩체**를 조작해 **특수 사례**를 처리하는 방식
+  - C에서 **예외적인 상황**을 처리할 필요가 없어짐
+    - **클래스**나 **객체**가 **예외적인 상황**을 캡슐화하여 처리하기 때문
+
+### null을 반환하지 마라
+- `null`은 **호출자**에게 문제를 떠넘김
+  - 누구 하나라도 `null` 확인을 빼먹으면 장애지점이 됨
+- `null`을 반환하고 싶다면
+  - **예외**를 던지거나, **특수 사례 객체**를 반환
+- **외부 API**가 `null`을 반환한다면
+  - **감싸기 메서드**를 구현해 예외를 던지거나
+  - **특수 사례 객체**를 반환하는 방식을 고려
+    - 많은 경우에 **특수 사례 객체**가 손쉬운 해결책
+- 리스트를 반환하는 메서드에서도, **빈 리스트**를 반환하는 방식이 더 나음(`null`보다)
+  - `Collections.emptyList()`
+
+### null을 전달하지 마라
+- 정상 인수로 `null`을 기대하는 API가 아니라면
+  - `null`을 전달하는 코드는 최대로 피하기
+- 기존 `NPE`가 발생하는 코드를 다음과 같이 1차 개선 - 새로운 예외 유형
+  ```java
+  public class MetricsCalculator
+  {
+    public double xProjection(Point p1, Point p2) {
+      if (p1 == null || p2 == null) {
+        throw new InvalidArgumentException("Invalid argument, ...");
+      }
+      return (p2.x - p1.x) * 1.5;
+    }
+  }
+  ```
+  - `NPE` 처리는 가능하나, `InvalidArgumentException`를 잡아내는 처리기가 필요
+- 2차 개선 - `assert`문
+  ```java
+  public class MetricsCalculator {
+    public double xProjection(Point p1, Point p2) {
+      assert p1 != null : "p1 should not be null";
+      assert p2 != null : "p2 should not be null";
+      return (p2.x - p1.x) * 1/5;
+    }
+  }
+  ```
+  - 코드 가독성은 좋으나, `null`을 전달할경우 여전히 **실행 오류**가 발생
+- 대다수의 프로그래밍 언어는
+  - **호출자**가 실수로 넘기는 `null`을 적절히 처리하는 방법이 X
+- 그러기에, 애초에 `null`을 넘기지 못하도록 금지하는 정책이 합리적
+
+### 결론
+- **깨끗한 코드**는 읽기도 좋아야 하지만 **안정성**도 높아야 함
+- **오류 처리**를 프로그램 **논리**와 분리하면
+  - **독립적인 추론**이 가능해지며
+  - 코드 **유지보수성**도 높아짐
