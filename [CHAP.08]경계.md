@@ -51,3 +51,89 @@
   - 프로그램에서 사용하려는 방식대로 외부 API를 호출
   - 통제된 환경에서 `API`를 제대로 이해하는지 확인하기 위함
     - **사용하려는 목적**에 초점
+
+### log4j 익히기
+- log4j를 적용하기 위한 여러가지 테스트 이후 나온 결과
+  ```java
+  public class LogTest {
+    private Logger logger;
+
+    @Before
+    public void initialize() {
+      logger = Logger.getLogger("logger");
+      logger = removeAllAppenders();
+      Logger.getRootLogger().removeAllAppenders();
+    }
+
+    @Test
+    public void basicLogger() {
+      BasicConfigurator.configure();
+      logger.info("basicLogger");
+    }
+
+    @Test
+    public void addAppenderWithStream() {
+      logger.addAppender(new ConsoleAppender(
+        new PatternLayout("%p %t %m%n"),
+        ConsoleAppender.SYSTEM_OUT));
+      logger.info("addAppenderWithStream");
+    }
+
+    @Test
+    public void addAppenderWithoutStream() {
+      logger.addAppender(new ConsoleAppender(
+        new PatternLayout("%p %t %m%n")));
+        logger.info("addAppenderWithoutStream");
+    }
+  }
+  ```
+- 하나를 구현하면서, `log4j`를 전체적으로 파악할 수 있었음
+
+### 학습 테스트는 공짜 이상이다
+- 학습 테스트에 드는 비용은 X
+  - 어쨌든 API를 배워야 하기 때문
+- 필요한 지식만을 확보하는 손쉬운 방법
+- **학습 테스트**는 **이해도**를 높여주는 정확한 실험
+  - 투자보다 노력하여 얻는 성과가 더 큼
+- 패키지의 **새 버전**이 나올 경우,
+  - **학습 테스트**를 돌려 차이가 있는지 확인 가능
+- **학습 테스트**는 패키지가 **예상**대로 도는지 확인
+  - 새 버전이 우리 코드와 호환되지 않으면 **이 사실이 바로 드러남**
+- **실제 코드**와 동일한 방식으로 **인터페이스**를 사용하는
+  - **테스트 케이스**가 필요함
+- **경계 테스트**가 있다면 패키지의 **새 버전**으로 이전하기 쉬워짐
+
+### 아직 존재하지 않는 코드를 사용하기
+- **경계**의 또 다른 유형
+  - `아는 코드 / 모르는 코드`를 분리
+  - 모르는 코드를 아예 인터페이스로 분리
+  - 이후 아는 부분만을 작업
+  - 차후 인터페이스로 연동(타 부서와)
+- 우리가 바라는 **인터페이스**를 구현하면
+  - 우리가 전적으로 통제 한다는 장점이 생김
+  - **가독성**과 **코드 의도**가 드러남
+- 우리에게 필요한 **인터페이스**를 정의(e.g. 받을 객체)
+  - `ADAPTER pattern`으로 **API 사용**을 캡슐화 하여
+  - `API`가 바뀔 때 수정한 코드를 한 곳으로 모음
+- 이렇게 설계시, 테스트도 매우 편함
+  - 이후 **경계 테스트 케이스**를 생성하여
+  - 우리가 API를 올바로 사용하는지 테스트 가능
+
+### 깨끗한 경계
+- 소프트웨어 설계가 우수하다면
+  - **변경**하는데 많은 투자와 재작업이 필요하지 X
+  - 엄청난 시간, 노력, 재작업 요구 X
+- 통제하지 못하는 코드를 사용할 경우
+  - **너무 많은 투자**를 하거나 **향후 변경 비용**이 지나치게 커지지 않도록 각별히 주의 필요
+- **경계**에 위치하는 코드는 **깔끔하게 분리**
+- **기대치**를 정의하는 **테스트 케이스**도 작성
+- 이쪽 코드에서 **외부 패키지**를 세세하게 알아야 할 필요가 X
+- 통제가 불가능한 **외부 패키지**에 의존하는 대신
+  - 통제가 가능한 우리 코드에 의존하는 것이 훨씬 좋음
+- **외부 패키지를 호출하는 코드를 가능한 줄여 경계를 관리**
+- `Map`과 같이 새로운 클래스로 **경계**를 감싸거나
+  - `ADAPTER`패턴을 사용하여 우리가 원하는 인터페이스를
+    - **패키지가 제공하는 인터페이스**로 변환
+- 어느 방법이든 **가독성**이 높아지며
+  - **경계 인터페이스**를 사용하는 **일관성**도 높아지며
+  - **외부 패키지**가 변했을 때 **변경할 코드가 줄어듦**
