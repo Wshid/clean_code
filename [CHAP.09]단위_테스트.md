@@ -83,3 +83,97 @@ public void testGetDataAsXml() throws Exception {
 - 잡다하고 세세한 코드가 모두 없어짐
   - 테스트 코드는 **본론**에 돌입해 **진짜 필요한 자료유형과 함수만 사용**
 - 코드가 수행하는 기능을 이해하기 편함
+
+#### 도메인에 특화된 언어
+- **LIST.9.2**는 도메인 특화 언어(DSL)
+  - API위에 **함수**와 **유틸리티**를 구현한 후, 그 함수와 유틸리티를 활용
+    - 직접 시스템 조작 API를 활용하지 X
+  - 테스트 코드를 짜기도, 읽기도 쉬움
+- 구현된 **함수**와 **유틸리티**는
+  - 테스트 코드에서 사용하는 **특수 API**가 됨
+    - 테스트를 구현하는 당사자와 독자를 도와주는 테스트 언어
+- 이런 테스트 API는 **처음부터 설계된 API X**
+  - 잡다하고 세세한 사항으로 범벅된 코드를 계속 **리팩터링**하다가 진화된 API
+
+#### 이중 표준
+- **테스트 API** 코드에 적용하는 표준은
+  - **실제 코드**에 적용하는 표준과 **다르다**
+- 테스트는
+  - **단순**, **간결**, **표현력 풍부**
+  - 실제 코드처럼 **효율적 X**
+    - 실제 환경이 아닌 테스트 환경에서 돌아가는 코드이기 때문
+  - 실제 환경과 테스트 환경은 **요구사항**이 **다름**
+
+##### LIST.9.3. EnvironmentControllerTest.java
+- 프로토타입으로 제작하던 환경 제어 시스템에 속한 테스트 코드
+  - 자세한 설명 없이도, 어떤 의미를 담는 코드인지 읽힘
+- 코드
+  ```java
+  @Test
+  public void turnOnLoTempAlarmAtThreshold() throws Exception {
+    hw.setTemp(WAY_TOO_COLD);
+    controller.tic();
+    assertTrue(hw.heaterState());
+    assertTrue(hw.blowerState());
+    assertFalse(hw.coolerState());
+    assertFalse(hw.hiTempAlarm());
+    assertTrue(hw.toTempAlaram());
+  }
+  ```
+  - 세세한 과정이 많으나, 최종 상태가 `온도가 급강하 하는지`에만 신경쓰면 됨
+- 한계
+  - 코드에서 점검하는 **상태 이름**과 **상태 값**을 확인하느라 가독성이 떨어짐
+    - 이 상태일때 `assertTrue`인지.. `False`인지
+
+##### LIST.9.4. EnvironmentControllerTest.java (리팩터링)
+```java
+@Test
+public void turnOnLoTempAlarmAtThreshold() throws Exception {
+  wayTooCold();
+  assertEquals("HBchL", hw.getState());
+}
+```
+- `tic`함수는 `wayTooCold`라는 함수를 만들어 숨김
+- `HBchL`
+  - 대문자는 켜짐, 소문자는 꺼짐을 의미
+    - `heater, blower, coller, hi-temp-alarm, lo-temp-alarm` 순서
+  - **그릇된 정보를 피하라**라는 규칙 위반에 가가우나
+    - 의미만 안다면 직관적
+
+##### LIST.9.5. EnvironmentControllerTest.java (더 복잡한 선택)
+```java
+@Test
+public void turnOnCollerAndBlowerIfTooHot() throws Exception {
+  tooHot();
+  assertEquals("hBChl", hw.getState());
+}
+
+@Test
+public void turnOnHeaderAndBlowerIfTooCold() throws Exception {
+  tooCold();
+  assertEquals("HBchl", hw.getSTate());
+}
+...
+```
+- 테스트 코드가 이해하기 쉬워짐
+
+##### LIST.9.6. MockControlHardware.java
+```java
+public String getState() {
+  String state = "";
+  state += heater ? "H" : "h";
+  state += blower ? "B" : "b";
+  ...
+  return state;
+}
+```
+- 코드가 그렇게 효율이 좋지는 못함
+  - `StringBuffer`를 사용해야 하는 등
+- `StringBuffer`는 보기 어려움
+  - 애초에 해당 어플리케이션은 **실시간 임베디드 시스템**
+  - 컴퓨터 자원과 메모리가 제한적일 가능성이 높음
+  - 단, 테스트 코드의 경우 **자원이 제한될 가능성이 낮음**
+- 이것이 바로 **이중 표준의 본질**
+  - 실제 환경에서는 절대로 안되지만, 테스트 환경에서는 문제 없는 방식
+- 대개 **메모리**나 **CPU** 효율과 관련이 있는 경우
+- **코드의 꺠끗함과는 전혀 무관**
